@@ -53,6 +53,7 @@
     padding: 0 5px;
     border-radius: 2rem;
     min-width: 50px;
+    min-height: 22px;
   }
   .infinite-bar .ant-progress-inner .ant-progress-bg {
     background-color: #F2EAF1;
@@ -91,23 +92,33 @@
     align-items: center;
   }
   .tr-table-rt {
-    flex-basis: 80px;
-    min-width: 80px;
+    flex-basis: 70px;
+    min-width: 70px;
     text-align: end;
   }
   .tr-table-lt {
-    flex-basis: 80px;
-    min-width: 80px;
+    flex-basis: 70px;
+    min-width: 70px;
     text-align: start;
   }
   .tr-table-bar {
     flex-basis: 160px;
+    min-width: 60px;
   }
   .tr-infinity-ch {
     font-size: 14pt;
     max-height: 24px;
     display: inline-flex;
     align-items: center;
+  }
+  .ant-table-expanded-row .ant-table .ant-table-body {
+    overflow-x: hidden;
+  }
+  .ant-table-expanded-row .ant-table-tbody>tr>td {
+    padding: 10px 2px;
+  }
+  .ant-table-expanded-row .ant-table-thead>tr>th {
+    padding: 12px 2px;
   }
 </style>
 
@@ -248,7 +259,7 @@
             <a-back-top></a-back-top>
             <a-table :columns="isMobile ? mobileColumns : columns" :row-key="dbInbound => dbInbound.id"
                 :data-source="searchedInbounds"
-                :scroll="isMobile ? {} : { x: 1200 }"
+                :scroll="isMobile ? {} : { x: 1000 }"
                 :pagination=pagination(searchedInbounds)
                 :expand-icon-as-cell="false"
                 :expand-row-by-click="false"

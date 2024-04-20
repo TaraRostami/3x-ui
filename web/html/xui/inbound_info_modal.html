@@ -115,7 +115,8 @@
       <br />
       <template v-if="inbound.stream.security != 'none'">
         {{ i18n "domainName" }}
-        <a-tag :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+        <a-tag v-if="inbound.serverName" :color="inbound.serverName ? 'green' : 'orange'">[[ inbound.serverName ? inbound.serverName : '' ]]</a-tag>
+        <a-tag v-else color="orange">{{ i18n "none" }}</a-tag>
       </template>
     </template>
     <table v-if="dbInbound.isSS" style="margin-bottom: 10px; width: 100%;">
@@ -145,8 +146,11 @@
       <table style="margin-bottom: 10px;">
         <tr>
           <td>{{ i18n "pages.inbounds.email" }}</td>
-          <td>
+          <td v-if="infoModal.clientSettings.email">
             <a-tag color="green">[[ infoModal.clientSettings.email ]]</a-tag>
+          </td>
+          <td v-else>
+            <a-tag color="red">{{ i18n "none" }}</a-tag>
           </td>
         </tr>
         <tr v-if="infoModal.clientSettings.id">
@@ -157,14 +161,20 @@
         </tr>
         <tr v-if="infoModal.inbound.canEnableTlsFlow()">
           <td>Flow</td>
-          <td>
+          <td v-if="infoModal.clientSettings.flow">
             <a-tag>[[ infoModal.clientSettings.flow ]]</a-tag>
+          </td>
+          <td v-else>
+            <a-tag color="orange">{{ i18n "none" }}</a-tag>
           </td>
         </tr>
         <tr v-if="infoModal.inbound.xtls">
           <td>Flow</td>
-          <td>
+          <td v-if="infoModal.clientSettings.flow">
             <a-tag>[[ infoModal.clientSettings.flow ]]</a-tag>
+          </td>
+          <td v-else>
+            <a-tag color="orange">{{ i18n "none" }}</a-tag>
           </td>
         </tr>
         <tr v-if="infoModal.clientSettings.password">
