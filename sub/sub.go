@@ -92,6 +92,11 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 		SubJsonFragment = ""
 	}
 
+	SubJsonNoises, err := s.settingService.GetSubJsonNoises()
+	if err != nil {
+		SubJsonNoises = ""
+	}
+
 	SubJsonMux, err := s.settingService.GetSubJsonMux()
 	if err != nil {
 		SubJsonMux = ""
@@ -106,7 +111,7 @@ func (s *Server) initRouter() (*gin.Engine, error) {
 
 	s.sub = NewSUBController(
 		g, LinksPath, JsonPath, Encrypt, ShowInfo, RemarkModel, SubUpdates,
-		SubJsonFragment, SubJsonMux, SubJsonRules)
+		SubJsonFragment, SubJsonNoises, SubJsonMux, SubJsonRules)
 
 	return engine, nil
 }
@@ -163,13 +168,13 @@ func (s *Server) Start() (err error) {
 			}
 			listener = network.NewAutoHttpsListener(listener)
 			listener = tls.NewListener(listener, c)
-			logger.Info("sub server run https on", listener.Addr())
+			logger.Info("Sub server running HTTPS on", listener.Addr())
 		} else {
-			logger.Error("error in loading certificates: ", err)
-			logger.Info("sub server run http on", listener.Addr())
+			logger.Error("Error loading certificates:", err)
+			logger.Info("Sub server running HTTP on", listener.Addr())
 		}
 	} else {
-		logger.Info("sub server run http on", listener.Addr())
+		logger.Info("Sub server running HTTP on", listener.Addr())
 	}
 	s.listener = listener
 

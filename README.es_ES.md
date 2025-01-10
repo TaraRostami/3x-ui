@@ -1,8 +1,11 @@
-# 3X-UI
+[English](/README.md) | [中文](/README.zh_CN.md) | [Español](/README.es_ES.md) | [Русский](/README.ru_RU.md)
 
-[English](/README.md) | [Chinese](/README.zh.md) | [Español](/README.es_ES.md)
-
-<p align="center"><a href="#"><img src="./media/3X-UI.png" alt="Image"></a></p>
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="./media/3x-ui-dark.png">
+    <img alt="3x-ui" src="./media/3x-ui-light.png">
+  </picture>
+</p>
 
 **Un Panel Web Avanzado • Construido sobre Xray Core**
 
@@ -16,9 +19,15 @@
 
 **Si este proyecto te es útil, podrías considerar darle una**:star2:
 
-<p align="left"><a href="#"><img width="125" src="https://github.com/MHSanaei/3x-ui/assets/115543613/7aa895dd-048a-42e7-989b-afd41a74e2e1" alt="Image"></a></p>
+<p align="left">
+  <a href="https://buymeacoffee.com/mhsanaei" target="_blank">
+    <img src="./media/buymeacoffe.png" alt="Image">
+  </a>
+</p>
 
 - USDT (TRC20): `TXncxkvhkDWGts487Pjqq1qT9JmwRUz8CC`
+- MATIC (polygon): `0x41C9548675D044c6Bfb425786C765bc37427256A`
+- LTC (Litecoin): `ltc1q2ach7x6d2zq0n4l0t4zl7d7xe2s6fs7a3vspwv`
 
 ## Instalar y Actualizar
 
@@ -26,38 +35,62 @@
 bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh)
 ```
 
-## Instalar una Versión Personalizada
+## Instalar versión antigua (no recomendamos)
 
-Para instalar la versión deseada, agrega la versión al final del comando de instalación. Por ejemplo, ver `v2.2.8`:
+Para instalar la versión deseada, utiliza el siguiente comando de instalación. Por ejemplo, ver `v1.7.9`:
 
 ```
-bash <(curl -Ls https://raw.githubusercontent.com/mhsanaei/3x-ui/master/install.sh) v2.2.8
+VERSION=v1.7.9 && <(curl -Ls "https://raw.githubusercontent.com/mhsanaei/3x-ui/$VERSION/install.sh") $VERSION
 ```
 
 ## Certificado SSL
 
 <details>
-  <summary>Haz clic para el Certificado SSL</summary>
+  <summary>Haga clic para ver los detalles del certificado SSL</summary>
 
-### Cloudflare
+### ACME
 
-El script de gestión tiene una aplicación de certificado SSL incorporada para Cloudflare. Para usar este script para colocar un certificado, necesitas lo siguiente:
+Para gestionar certificados SSL utilizando ACME:
 
-- Correo electrónico registrado en Cloudflare
-- Clave Global de API de Cloudflare
-- El nombre de dominio se ha resuelto en el servidor actual a través de Cloudflare
+1. Asegúrate de que tu dominio esté correctamente resuelto al servidor.
+2. Ejecuta el comando `x-ui` en la terminal y elige `Gestión de Certificados SSL`.
+3. Se te presentarán las siguientes opciones:
 
-**1:** Ejecuta el comando`x-ui`en la terminal, luego elige `Certificado SSL de Cloudflare`.
-
+   - **Get SSL:** Obtener certificados SSL.
+   - **Revoke:** Revocar certificados SSL existentes.
+   - **Force Renew:** Forzar la renovación de certificados SSL.
+   - **Show Existing Domains:** Mostrar todos los certificados de dominio disponibles en el servidor.  
+   - **Set Certificate Paths for the Panel:** Especificar el certificado para tu dominio que será utilizado por el panel. 
 
 ### Certbot
-```
+
+Para instalar y usar Certbot:
+
+```sh
 apt-get install certbot -y
 certbot certonly --standalone --agree-tos --register-unsafely-without-email -d yourdomain.com
 certbot renew --dry-run
 ```
 
-***Consejo:*** *Certbot también está integrado en el script de gestión. Puedes ejecutar el comando `x-ui` , luego elegir `Gestión de Certificados SSL`.*
+### Cloudflare
+
+El script de gestión incluye una aplicación de certificado SSL integrada para Cloudflare. Para usar este script para solicitar un certificado, necesitas lo siguiente:
+
+- Correo electrónico registrado en Cloudflare
+- Clave API Global de Cloudflare
+- El nombre de dominio debe estar resuelto al servidor actual a través de Cloudflare
+
+**Cómo obtener la Clave API Global de Cloudflare:**
+
+1. Ejecuta el comando `x-ui` en la terminal y elige `Certificado SSL de Cloudflare`.
+2. Visita el enlace: [Tokens de API de Cloudflare](https://dash.cloudflare.com/profile/api-tokens).
+3. Haz clic en "Ver Clave API Global" (consulta la captura de pantalla a continuación):
+   ![](media/APIKey1.PNG)
+4. Es posible que necesites volver a autenticar tu cuenta. Después de eso, se mostrará la Clave API (consulta la captura de pantalla a continuación):
+   ![](media/APIKey2.png)
+
+Al utilizarlo, simplemente ingresa tu `nombre de dominio`, `correo electrónico` y `CLAVE API`. El diagrama es el siguiente:
+   ![](media/DetailEnter.png)
 
 </details>
 
@@ -173,18 +206,59 @@ eliminar 3x-ui de docker
 
 </details>
 
+## Configuración de Nginx
+<details>
+  <summary>Haga clic aquí para configurar el proxy inverso</summary>
+
+#### Proxy inverso Nginx
+```nginx
+location / {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range; 
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:2053;
+}
+```
+
+#### Nginx sub-path
+- EAsegúrese de que la "Ruta Raíz de la URL del Panel" en la configuración del panel `/sub` es la misma.
+- El `url` en la configuración del panel debe terminar con `/`.   
+
+```nginx
+location /sub {
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header Host $http_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Range $http_range;
+    proxy_set_header If-Range $http_if_range; 
+    proxy_redirect off;
+    proxy_pass http://127.0.0.1:2053;
+}
+```
+</details>
 
 ## SO Recomendados
 
 - Ubuntu 20.04+
 - Debian 11+
 - CentOS 8+
+- OpenEuler 22.03+
 - Fedora 36+
 - Arch Linux
+- Parch Linux
 - Manjaro
 - Armbian
-- AlmaLinux 9+
-- Rockylinux 9+
+- AlmaLinux 8.0+
+- Rocky Linux 8+
+- Oracle Linux 8+
+- OpenSUSE Tubleweed
+- Amazon Linux 2023
+- Windows x64
 
 ## Arquitecturas y Dispositivos Compatibles
 
@@ -208,14 +282,18 @@ Nuestra plataforma ofrece compatibilidad con una amplia gama de arquitecturas y 
 
 ## Idiomas
 
-- Inglés
-- Farsi
-- Chino
-- Ruso
-- Vietnamita
-- Español
-- Indonesio
-- Ucraniano
+- English (inglés)  
+- Persian (persa)  
+- Traditional Chinese (chino tradicional)  
+- Simplified Chinese (chino simplificado)  
+- Japanese (japonés)  
+- Russian (ruso)  
+- Vietnamese (vietnamita)  
+- Spanish (español)  
+- Indonesian (indonesio)  
+- Ukrainian (ucraniano)  
+- Turkish (turco)  
+- Português (Brazil) (portugués (Brasil))  
 
 
 ## Características
@@ -236,88 +314,103 @@ Nuestra plataforma ofrece compatibilidad con una amplia gama de arquitecturas y 
 - Soporta exportar/importar base de datos desde el panel
 
 
-## Configuraciones por Defecto
+## Configuración Predeterminada del Panel
 
 <details>
-  <summary>Haz clic para detalles de las configuraciones por defecto</summary>
+  <summary>Haz clic para ver los detalles de la configuración predeterminada</summary>
 
-  ### Información
+### Nombre de usuario, Contraseña, Puerto y Ruta Base Web
 
+Si elige no modificar estas configuraciones, se generarán aleatoriamente (esto no se aplica a Docker).
+
+**Configuraciones predeterminadas para Docker:**
+- **Nombre de usuario:** admin
+- **Contraseña:** admin
 - **Puerto:** 2053
-- **Usuario y Contraseña:** Se generarán aleatoriamente si omites la modificación.
+
+### Gestión de la Base de Datos:
+
+  Puedes realizar copias de seguridad y restauraciones de la base de datos directamente desde el panel.
+
 - **Ruta de la Base de Datos:**
-  - /etc/x-ui/x-ui.db
-- **Ruta de Configuración de Xray:**
-  - /usr/local/x-ui/bin/config.json
-- **Ruta del Panel Web sin Implementar SSL:**
-  - http://ip:2053/panel
-  - http://domain:2053/panel
-- **Ruta del Panel Web con Implementación de SSL:**
-  - https://domain:2053/panel
- 
+  - `/etc/x-ui/x-ui.db`
+
+### Ruta Base Web
+
+1. **Restablecer la Ruta Base Web:**
+   - Abre tu terminal.
+   - Ejecuta el comando `x-ui`.
+   - Selecciona la opción `Restablecer la Ruta Base Web`.
+
+2. **Generar o Personalizar la Ruta:**
+   - La ruta se generará aleatoriamente, o puedes ingresar una ruta personalizada.
+
+3. **Ver Configuración Actual:**
+   - Para ver tu configuración actual, utiliza el comando `x-ui settings` en el terminal o selecciona `Ver Configuración Actual` en `x-ui`.
+
+### Recomendación de Seguridad:
+- Para mayor seguridad, utiliza una palabra larga y aleatoria en la estructura de tu URL.
+
+**Ejemplos:**
+- `http://ip:port/*webbasepath*/panel`
+- `http://domain:port/*webbasepath*/panel`
+
 </details>
 
-## [Configuración WARP](https://gitlab.com/fscarmen/warp)
+## Configuración de WARP
 
 <details>
-  <summary>Haz clic para detalles de la configuración WARP</summary>
+  <summary>Haz clic para ver los detalles de la configuración de WARP</summary>
 
 #### Uso
 
-Si deseas usar enrutamiento a WARP antes de la versión v2.1.0, sigue los pasos a continuación:
+**Para versiones `v2.1.0` y posteriores:**
 
-**1.** Instala WARP en **Modo de Proxy SOCKS**:
-
-   ```sh
-   bash <(curl -sSL https://raw.githubusercontent.com/hamid-gh98/x-ui-scripts/main/install_warp_proxy.sh)
-   ```
-
-**2.** Si ya instalaste warp, puedes desinstalarlo usando el siguiente comando:
-
-   ```sh
-   warp u
-   ```
-
-**3.** Activa la configuración que necesites en el panel
-
-   Características de Configuración:
-
-   - Bloquear Anuncios
-   - Enrutar Google + Netflix + Spotify + OpenAI (ChatGPT) a WARP
-   - Corregir error 403 de Google
+WARP está integrado, no se requiere instalación adicional. Simplemente habilita la configuración necesaria en el panel.
 
 </details>
 
 ## Límite de IP
 
 <details>
-  <summary>Haz clic para más detalles del límite de IP</summary>
+  <summary>Haz clic para ver los detalles del límite de IP</summary>
 
 #### Uso
 
-**Nota:** El Límite de IP no funcionará correctamente cuando se use IP Tunnel
+**Nota:** El Límite de IP no funcionará correctamente cuando uses Túnel IP.
 
-- Para versiones hasta `v1.6.1`:
-
+- **Para versiones hasta `v1.6.1`:**
   - El límite de IP está integrado en el panel.
 
-- Para versiones `v1.7.0` y posteriores:
+**Para versiones `v1.7.0` y posteriores:**
 
-  - Para que el Límite de IP funcione correctamente, necesitas instalar fail2ban y sus archivos requeridos siguiendo estos pasos:
+Para habilitar la funcionalidad de límite de IP, necesitas instalar `fail2ban` y los archivos requeridos siguiendo estos pasos:
 
-    1. Usa el comando `x-ui` dentro de la terminal.
-    2. Selecciona `Gestión de Límite de IP`.
-    3. Elige las opciones apropiadas según tus necesidades.
-   
-  - asegúrate de tener ./access.log en tu Configuración de Xray después de la v2.1.3 tenemos una opción para ello
-  
-  ```sh
+1. Ejecuta el comando `x-ui` en el terminal, luego elige `Gestión de Límite de IP`.
+2. Verás las siguientes opciones:
+
+   - **Cambiar la Duración del Bloqueo:** Ajustar la duración de los bloqueos.
+   - **Desbloquear a Todos:** Levantar todos los bloqueos actuales.
+   - **Revisar los Registros:** Revisar los registros.
+   - **Estado de Fail2ban:** Verificar el estado de `fail2ban`.
+   - **Reiniciar Fail2ban:** Reiniciar el servicio `fail2ban`.
+   - **Desinstalar Fail2ban:** Desinstalar Fail2ban con la configuración.
+
+3. Agrega una ruta para el registro de acceso en el panel configurando `Xray Configs/log/Access log` a `./access.log`, luego guarda y reinicia Xray.
+
+- **Para versiones anteriores a `v2.1.3`:**
+  - Necesitas configurar manualmente la ruta del registro de acceso en tu configuración de Xray:
+
+    ```sh
     "log": {
       "access": "./access.log",
       "dnsLog": false,
       "loglevel": "warning"
     },
-  ```
+    ```
+
+- **Para versiones `v2.1.3` y posteriores:**
+  - Hay una opción para configurar `access.log` directamente desde el panel.
 
 </details>
 
@@ -368,7 +461,7 @@ El panel web admite tráfico diario, inicio de sesión en el panel, copia de seg
 
 - Inicia [Botfather](https://t.me/BotFather) en tu cuenta de Telegram:
     ![Botfather](./media/botfather.png)
-  
+
 - Crea un nuevo bot usando el comando /newbot: Te hará 2 preguntas, Un nombre y un nombre de usuario para tu bot. Ten en cuenta que el nombre de usuario debe terminar con la palabra "bot".
     ![Create new bot](./media/newbot.png)
 
@@ -393,28 +486,29 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 
 #### Uso
 
+- [Documentación de API](https://www.postman.com/hsanaei/3x-ui/collection/q1l5l0u/3x-ui)
 - `/login` con `POST` datos de usuario: `{username: '', password: ''}` para iniciar sesión
 - `/panel/api/inbounds` base para las siguientes acciones:
 
-| Método | Ruta                               | Acción                                                   |
-| :----: | ---------------------------------- | -------------------------------------------------------- |
-| `GET`  | `"/list"`                          | Obtener todas los Entradas                               |
-| `GET`  | `"/get/:id"`                       | Obtener Entrada con inbound.id                           |
-| `GET`  | `"/getClientTraffics/:email"`      | Obtener Tráficos del Cliente con email                   |
-| `GET`  | `"/createbackup"`                  | El bot de Telegram envía copia de seguridad a los admins |
-| `POST` | `"/add"`                           | Agregar Entrada                                          |
-| `POST` | `"/del/:id"`                       | Eliminar Entrada                                         |
-| `POST` | `"/update/:id"`                    | Actualizar Entrada                                       |
-| `POST` | `"/clientIps/:email"`              | Dirección IP del Cliente                                 |
-| `POST` | `"/clearClientIps/:email"`         | Borrar Dirección IP del Cliente                          |
-| `POST` | `"/addClient"`                     | Agregar Cliente a la Entrada                             |
-| `POST` | `"/:id/delClient/:clientId"`       | Eliminar Cliente por clientId\*                          |
-| `POST` | `"/updateClient/:clientId"`        | Actualizar Cliente por clientId\*                        |
-| `POST` | `"/:id/resetClientTraffic/:email"` | Restablecer Tráfico del Cliente                          |
-| `POST` | `"/resetAllTraffics"`              | Restablecer tráfico de todos las Entradas                |
-| `POST` | `"/resetAllClientTraffics/:id"`    | Restablecer tráfico de todos los clientes en una Entrada |
-| `POST` | `"/delDepletedClients/:id"`        | Eliminar clientes agotados de la entrada (-1: todos)     |
-| `POST` | `"/onlines"`                       | Obtener usuarios en línea (lista de correos electrónicos)|
+| Método | Ruta                               | Acción                                                    |
+| :----: | ---------------------------------- | --------------------------------------------------------- |
+| `GET`  | `"/list"`                          | Obtener todas los Entradas                                |
+| `GET`  | `"/get/:id"`                       | Obtener Entrada con inbound.id                            |
+| `GET`  | `"/getClientTraffics/:email"`      | Obtener Tráficos del Cliente con email                    |
+| `GET`  | `"/createbackup"`                  | El bot de Telegram envía copia de seguridad a los admins  |
+| `POST` | `"/add"`                           | Agregar Entrada                                           |
+| `POST` | `"/del/:id"`                       | Eliminar Entrada                                          |
+| `POST` | `"/update/:id"`                    | Actualizar Entrada                                        |
+| `POST` | `"/clientIps/:email"`              | Dirección IP del Cliente                                  |
+| `POST` | `"/clearClientIps/:email"`         | Borrar Dirección IP del Cliente                           |
+| `POST` | `"/addClient"`                     | Agregar Cliente a la Entrada                              |
+| `POST` | `"/:id/delClient/:clientId"`       | Eliminar Cliente por clientId\*                           |
+| `POST` | `"/updateClient/:clientId"`        | Actualizar Cliente por clientId\*                         |
+| `POST` | `"/:id/resetClientTraffic/:email"` | Restablecer Tráfico del Cliente                           |
+| `POST` | `"/resetAllTraffics"`              | Restablecer tráfico de todos las Entradas                 |
+| `POST` | `"/resetAllClientTraffics/:id"`    | Restablecer tráfico de todos los clientes en una Entrada  |
+| `POST` | `"/delDepletedClients/:id"`        | Eliminar clientes agotados de la entrada (-1: todos)      |
+| `POST` | `"/onlines"`                       | Obtener usuarios en línea (lista de correos electrónicos) |
 
 \*- El campo `clientId` debe llenarse por:
 
@@ -422,9 +516,7 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 - `client.password` para TROJAN
 - `client.email` para Shadowsocks
 
-
-- [Documentación de API](https://documenter.getpostman.com/view/16802678/2s9YkgD5jm)
-- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D16802678-1a4c9270-ac77-40ed-959a-7aa56dc4a415%26entityType%3Dcollection%26workspaceId%3D2cd38c01-c851-4a15-a972-f181c23359d9)
+- [<img src="https://run.pstmn.io/button.svg" alt="Run In Postman" style="width: 128px; height: 32px;">](https://app.getpostman.com/run-collection/5146551-dda3cab3-0e33-485f-96f9-d4262f437ac5?action=collection%2Ffork&source=rip_markdown&collection-url=entityId%3D5146551-dda3cab3-0e33-485f-96f9-d4262f437ac5%26entityType%3Dcollection%26workspaceId%3Dd64f609f-485a-4951-9b8f-876b3f917124)
 </details>
 
 ## Variables de Entorno
@@ -434,13 +526,13 @@ Ingresa el ID de chat de usuario en el campo de entrada número 4. Las cuentas d
 
 #### Uso
 
-| Variable       |                      Tipo                      | Predeterminado|
-| -------------- | :--------------------------------------------: | :------------ |
-| XUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"`      |
-| XUI_DEBUG      |                   `boolean`                    | `false`       |
-| XUI_BIN_FOLDER |                    `string`                    | `"bin"`       |
-| XUI_DB_FOLDER  |                    `string`                    | `"/etc/x-ui"` |
-| XUI_LOG_FOLDER |                    `string`                    | `"/var/log"`  |
+| Variable       |                      Tipo                      | Predeterminado |
+| -------------- | :--------------------------------------------: | :------------- |
+| XUI_LOG_LEVEL  | `"debug"` \| `"info"` \| `"warn"` \| `"error"` | `"info"`       |
+| XUI_DEBUG      |                   `boolean`                    | `false`        |
+| XUI_BIN_FOLDER |                    `string`                    | `"bin"`        |
+| XUI_DB_FOLDER  |                    `string`                    | `"/etc/x-ui"`  |
+| XUI_LOG_FOLDER |                    `string`                    | `"/var/log"`   |
 
 Ejemplo:
 
@@ -452,13 +544,34 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 
 ## Vista previa
 
-![1](./media/1.png)
-![2](./media/2.png)
-![3](./media/3.png)
-![4](./media/4.png)
-![5](./media/5.png)
-![6](./media/6.png)
-![7](./media/7.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/01-overview-dark.png">
+  <img alt="3x-ui" src="./media/01-overview-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/02-inbounds-dark.png">
+  <img alt="3x-ui" src="./media/02-inbounds-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/03-add-inbound-dark.png">
+  <img alt="3x-ui" src="./media/03-add-inbound-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/04-add-client-dark.png">
+  <img alt="3x-ui" src="./media/04-add-client-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/05-settings-dark.png">
+  <img alt="3x-ui" src="./media/05-settings-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/06-configs-dark.png">
+  <img alt="3x-ui" src="./media/06-configs-light.png">
+</picture>
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="./media/07-bot-dark.png">
+  <img alt="3x-ui" src="./media/07-bot-light.png">
+</picture>
 
 ## Un agradecimiento especial a
 
@@ -467,8 +580,8 @@ XUI_BIN_FOLDER="bin" XUI_DB_FOLDER="/etc/x-ui" go build main.go
 ## Reconocimientos
 
 - [Iran v2ray rules](https://github.com/chocolate4u/Iran-v2ray-rules) (Licencia: **GPL-3.0**): _Reglas de enrutamiento mejoradas de v2ray/xray y v2ray/xray-clients con dominios iraníes integrados y un enfoque en seguridad y bloqueo de anuncios._
-- [Vietnam Adblock rules](https://github.com/vuong2023/vn-v2ray-rules) (License: **GPL-3.0**): _Un dominio alojado en Vietnam y una lista de bloqueo con la máxima eficiencia para vietnamitas._
+- [Russia v2ray rules](https://github.com/runetfreedom/russia-v2ray-rules-dat) (License: **GPL-3.0**): _Este repositorio contiene reglas de enrutamiento de V2Ray actualizadas automáticamente basadas en datos de dominios y direcciones bloqueados en Rusia._
 
 ## Estrellas a lo largo del tiempo
 
-[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg)](https://starchart.cc/MHSanaei/3x-ui)
+[![Stargazers over time](https://starchart.cc/MHSanaei/3x-ui.svg?variant=adaptive)](https://starchart.cc/MHSanaei/3x-ui)

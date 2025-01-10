@@ -10,12 +10,14 @@ import (
 type Protocol string
 
 const (
-	VMess       Protocol = "vmess"
+	VMESS       Protocol = "vmess"
 	VLESS       Protocol = "vless"
-	Dokodemo    Protocol = "Dokodemo-door"
-	Http        Protocol = "http"
+	DOKODEMO    Protocol = "dokodemo-door"
+	HTTP        Protocol = "http"
 	Trojan      Protocol = "trojan"
 	Shadowsocks Protocol = "shadowsocks"
+	Socks       Protocol = "socks"
+	WireGuard   Protocol = "wireguard"
 )
 
 type User struct {
@@ -44,6 +46,7 @@ type Inbound struct {
 	StreamSettings string   `json:"streamSettings" form:"streamSettings"`
 	Tag            string   `json:"tag" form:"tag" gorm:"unique"`
 	Sniffing       string   `json:"sniffing" form:"sniffing"`
+	Allocate       string   `json:"allocate" form:"allocate"`
 }
 
 type OutboundTraffics struct {
@@ -73,6 +76,7 @@ func (i *Inbound) GenXrayInboundConfig() *xray.InboundConfig {
 		StreamSettings: json_util.RawMessage(i.StreamSettings),
 		Tag:            i.Tag,
 		Sniffing:       json_util.RawMessage(i.Sniffing),
+		Allocate:       json_util.RawMessage(i.Allocate),
 	}
 }
 
@@ -84,6 +88,7 @@ type Setting struct {
 
 type Client struct {
 	ID         string `json:"id"`
+	Security   string `json:"security"`
 	Password   string `json:"password"`
 	Flow       string `json:"flow"`
 	Email      string `json:"email"`
@@ -93,5 +98,6 @@ type Client struct {
 	Enable     bool   `json:"enable" form:"enable"`
 	TgID       int64  `json:"tgId" form:"tgId"`
 	SubID      string `json:"subId" form:"subId"`
+	Comment    string `json:"comment" form:"comment"`
 	Reset      int    `json:"reset" form:"reset"`
 }

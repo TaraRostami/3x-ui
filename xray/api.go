@@ -31,23 +31,27 @@ type XrayAPI struct {
 	isConnected          bool
 }
 
-func (x *XrayAPI) Init(apiPort int) (err error) {
-	if apiPort == 0 {
-		return common.NewError("xray api port wrong:", apiPort)
+func (x *XrayAPI) Init(apiPort int) error {
+	if apiPort <= 0 {
+		return fmt.Errorf("invalid Xray API port: %d", apiPort)
 	}
-	x.grpcClient, err = grpc.Dial(fmt.Sprintf("127.0.0.1:%v", apiPort), grpc.WithTransportCredentials(insecure.NewCredentials()))
+
+	addr := fmt.Sprintf("127.0.0.1:%d", apiPort)
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to connect to Xray API: %w", err)
 	}
+
+	x.grpcClient = conn
 	x.isConnected = true
 
-	hsClient := command.NewHandlerServiceClient(x.grpcClient)
-	ssClient := statsService.NewStatsServiceClient(x.grpcClient)
+	hsClient := command.NewHandlerServiceClient(conn)
+	ssClient := statsService.NewStatsServiceClient(conn)
 
 	x.HandlerServiceClient = &hsClient
 	x.StatsServiceClient = &ssClient
 
-	return
+	return nil
 }
 
 func (x *XrayAPI) Close() {
@@ -125,7 +129,7 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]in
 				CipherType: ssCipherType,
 			})
 		} else {
-			account = serial.ToTypedMessage(&shadowsocks_2022.User{
+			account = serial.ToTypedMessage(&shadowsocks_2022.ServerConfig{
 				Key:   user["password"].(string),
 				Email: user["email"].(string),
 			})
@@ -148,94 +152,105 @@ func (x *XrayAPI) AddUser(Protocol string, inboundTag string, user map[string]in
 	return err
 }
 
-func (x *XrayAPI) RemoveUser(inboundTag string, email string) error {
-	client := *x.HandlerServiceClient
-	_, err := client.AlterInbound(context.Background(), &command.AlterInboundRequest{
-		Tag: inboundTag,
-		Operation: serial.ToTypedMessage(&command.RemoveUserOperation{
-			Email: email,
-		}),
-	})
-	return err
+func (x *XrayAPI) RemoveUser(inboundTag, email string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	op := &command.RemoveUserOperation{Email: email}
+	req := &command.AlterInboundRequest{
+		Tag:       inboundTag,
+		Operation: serial.ToTypedMessage(op),
+	}
+
+	_, err := (*x.HandlerServiceClient).AlterInbound(ctx, req)
+	if err != nil {
+		return fmt.Errorf("failed to remove user: %w", err)
+	}
+
+	return nil
 }
 
 func (x *XrayAPI) GetTraffic(reset bool) ([]*Traffic, []*ClientTraffic, error) {
 	if x.grpcClient == nil {
 		return nil, nil, common.NewError("xray api is not initialized")
 	}
-	trafficRegex := regexp.MustCompile("(inbound|outbound)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
-	ClientTrafficRegex := regexp.MustCompile("(user)>>>([^>]+)>>>traffic>>>(downlink|uplink)")
 
-	client := *x.StatsServiceClient
+	trafficRegex := regexp.MustCompile(`(inbound|outbound)>>>([^>]+)>>>traffic>>>(downlink|uplink)`)
+	clientTrafficRegex := regexp.MustCompile(`user>>>([^>]+)>>>traffic>>>(downlink|uplink)`)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
-	request := &statsService.QueryStatsRequest{
-		Reset_: reset,
+
+	if x.StatsServiceClient == nil {
+		return nil, nil, common.NewError("xray StatusServiceClient is not initialized")
 	}
-	resp, err := client.QueryStats(ctx, request)
+
+	resp, err := (*x.StatsServiceClient).QueryStats(ctx, &statsService.QueryStatsRequest{Reset_: reset})
 	if err != nil {
+		logger.Debug("Failed to query Xray stats:", err)
 		return nil, nil, err
 	}
-	tagTrafficMap := map[string]*Traffic{}
-	emailTrafficMap := map[string]*ClientTraffic{}
 
-	clientTraffics := make([]*ClientTraffic, 0)
-	traffics := make([]*Traffic, 0)
+	tagTrafficMap := make(map[string]*Traffic)
+	emailTrafficMap := make(map[string]*ClientTraffic)
+
 	for _, stat := range resp.GetStat() {
-		matchs := trafficRegex.FindStringSubmatch(stat.Name)
-		if len(matchs) < 3 {
-
-			matchs := ClientTrafficRegex.FindStringSubmatch(stat.Name)
-			if len(matchs) < 3 {
-				continue
-			} else {
-
-				isUser := matchs[1] == "user"
-				email := matchs[2]
-				isDown := matchs[3] == "downlink"
-				if !isUser {
-					continue
-				}
-				traffic, ok := emailTrafficMap[email]
-				if !ok {
-					traffic = &ClientTraffic{
-						Email: email,
-					}
-					emailTrafficMap[email] = traffic
-					clientTraffics = append(clientTraffics, traffic)
-				}
-				if isDown {
-					traffic.Down = stat.Value
-				} else {
-					traffic.Up = stat.Value
-				}
-
-			}
-			continue
-		}
-		isInbound := matchs[1] == "inbound"
-		isOutbound := matchs[1] == "outbound"
-		tag := matchs[2]
-		isDown := matchs[3] == "downlink"
-		if tag == "api" {
-			continue
-		}
-		traffic, ok := tagTrafficMap[tag]
-		if !ok {
-			traffic = &Traffic{
-				IsInbound:  isInbound,
-				IsOutbound: isOutbound,
-				Tag:        tag,
-			}
-			tagTrafficMap[tag] = traffic
-			traffics = append(traffics, traffic)
-		}
-		if isDown {
-			traffic.Down = stat.Value
-		} else {
-			traffic.Up = stat.Value
+		if matches := trafficRegex.FindStringSubmatch(stat.Name); len(matches) == 4 {
+			processTraffic(matches, stat.Value, tagTrafficMap)
+		} else if matches := clientTrafficRegex.FindStringSubmatch(stat.Name); len(matches) == 3 {
+			processClientTraffic(matches, stat.Value, emailTrafficMap)
 		}
 	}
+	return mapToSlice(tagTrafficMap), mapToSlice(emailTrafficMap), nil
+}
 
-	return traffics, clientTraffics, nil
+func processTraffic(matches []string, value int64, trafficMap map[string]*Traffic) {
+	isInbound := matches[1] == "inbound"
+	tag := matches[2]
+	isDown := matches[3] == "downlink"
+
+	if tag == "api" {
+		return
+	}
+
+	traffic, ok := trafficMap[tag]
+	if !ok {
+		traffic = &Traffic{
+			IsInbound:  isInbound,
+			IsOutbound: !isInbound,
+			Tag:        tag,
+		}
+		trafficMap[tag] = traffic
+	}
+
+	if isDown {
+		traffic.Down = value
+	} else {
+		traffic.Up = value
+	}
+}
+
+func processClientTraffic(matches []string, value int64, clientTrafficMap map[string]*ClientTraffic) {
+	email := matches[1]
+	isDown := matches[2] == "downlink"
+
+	traffic, ok := clientTrafficMap[email]
+	if !ok {
+		traffic = &ClientTraffic{Email: email}
+		clientTrafficMap[email] = traffic
+	}
+
+	if isDown {
+		traffic.Down = value
+	} else {
+		traffic.Up = value
+	}
+}
+
+func mapToSlice[T any](m map[string]*T) []*T {
+	result := make([]*T, 0, len(m))
+	for _, v := range m {
+		result = append(result, v)
+	}
+	return result
 }

@@ -30,6 +30,7 @@ type AllSetting struct {
 	TgBotEnable      bool   `json:"tgBotEnable" form:"tgBotEnable"`
 	TgBotToken       string `json:"tgBotToken" form:"tgBotToken"`
 	TgBotProxy       string `json:"tgBotProxy" form:"tgBotProxy"`
+	TgBotAPIServer   string `json:"tgBotAPIServer" form:"tgBotAPIServer"`
 	TgBotChatId      string `json:"tgBotChatId" form:"tgBotChatId"`
 	TgRunTime        string `json:"tgRunTime" form:"tgRunTime"`
 	TgBotBackup      bool   `json:"tgBotBackup" form:"tgBotBackup"`
@@ -52,6 +53,7 @@ type AllSetting struct {
 	SubJsonPath      string `json:"subJsonPath" form:"subJsonPath"`
 	SubJsonURI       string `json:"subJsonURI" form:"subJsonURI"`
 	SubJsonFragment  string `json:"subJsonFragment" form:"subJsonFragment"`
+	SubJsonNoises    string `json:"subJsonNoises" form:"subJsonNoises"`
 	SubJsonMux       string `json:"subJsonMux" form:"subJsonMux"`
 	SubJsonRules     string `json:"subJsonRules" form:"subJsonRules"`
 	Datepicker       string `json:"datepicker" form:"datepicker"`

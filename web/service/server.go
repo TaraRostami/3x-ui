@@ -23,12 +23,12 @@ import (
 	"x-ui/util/sys"
 	"x-ui/xray"
 
-	"github.com/shirou/gopsutil/v3/cpu"
-	"github.com/shirou/gopsutil/v3/disk"
-	"github.com/shirou/gopsutil/v3/host"
-	"github.com/shirou/gopsutil/v3/load"
-	"github.com/shirou/gopsutil/v3/mem"
-	"github.com/shirou/gopsutil/v3/net"
+	"github.com/shirou/gopsutil/v4/cpu"
+	"github.com/shirou/gopsutil/v4/disk"
+	"github.com/shirou/gopsutil/v4/host"
+	"github.com/shirou/gopsutil/v4/load"
+	"github.com/shirou/gopsutil/v4/mem"
+	"github.com/shirou/gopsutil/v4/net"
 )
 
 type ProcessState string
@@ -43,6 +43,7 @@ type Status struct {
 	T           time.Time `json:"-"`
 	Cpu         float64   `json:"cpu"`
 	CpuCores    int       `json:"cpuCores"`
+	LogicalPro  int       `json:"logicalPro"`
 	CpuSpeedMhz float64   `json:"cpuSpeedMhz"`
 	Mem         struct {
 		Current uint64 `json:"current"`
@@ -129,6 +130,13 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 	status.CpuCores, err = cpu.Counts(false)
 	if err != nil {
 		logger.Warning("get cpu cores count failed:", err)
+	}
+
+	status.LogicalPro = runtime.NumCPU()
+	if p != nil && p.IsRunning() {
+		status.AppStats.Uptime = p.GetUptime()
+	} else {
+		status.AppStats.Uptime = 0
 	}
 
 	cpuInfos, err := cpu.Info()
@@ -240,28 +248,45 @@ func (s *ServerService) GetStatus(lastStatus *Status) *Status {
 }
 
 func (s *ServerService) GetXrayVersions() ([]string, error) {
-	url := "https://api.github.com/repos/XTLS/Xray-core/releases"
-	resp, err := http.Get(url)
+	const (
+		XrayURL    = "https://api.github.com/repos/XTLS/Xray-core/releases"
+		bufferSize = 8192
+	)
+
+	resp, err := http.Get(XrayURL)
 	if err != nil {
 		return nil, err
 	}
-
 	defer resp.Body.Close()
-	buffer := bytes.NewBuffer(make([]byte, 8192))
+
+	buffer := bytes.NewBuffer(make([]byte, bufferSize))
 	buffer.Reset()
-	_, err = buffer.ReadFrom(resp.Body)
-	if err != nil {
+	if _, err := buffer.ReadFrom(resp.Body); err != nil {
 		return nil, err
 	}
 
-	releases := make([]Release, 0)
-	err = json.Unmarshal(buffer.Bytes(), &releases)
-	if err != nil {
+	var releases []Release
+	if err := json.Unmarshal(buffer.Bytes(), &releases); err != nil {
 		return nil, err
 	}
+
 	var versions []string
 	for _, release := range releases {
-		if release.TagName >= "v1.7.5" {
+		tagVersion := strings.TrimPrefix(release.TagName, "v")
+		tagParts := strings.Split(tagVersion, ".")
+		if len(tagParts) != 3 {
+			continue
+		}
+
+		major, err1 := strconv.Atoi(tagParts[0])
+		minor, err2 := strconv.Atoi(tagParts[1])
+		patch, err3 := strconv.Atoi(tagParts[2])
+		if err1 != nil || err2 != nil || err3 != nil {
+			continue
+		}
+
+		if (major == 1 && minor == 8 && patch == 24) ||
+			(major >= 25) {
 			versions = append(versions, release.TagName)
 		}
 	}
@@ -304,6 +329,16 @@ func (s *ServerService) downloadXRay(version string) (string, error) {
 		arch = "64"
 	case "arm64":
 		arch = "arm64-v8a"
+	case "armv7":
+		arch = "arm32-v7a"
+	case "armv6":
+		arch = "arm32-v6"
+	case "armv5":
+		arch = "arm32-v5"
+	case "386":
+		arch = "32"
+	case "s390x":
+		arch = "s390x"
 	}
 
 	fileName := fmt.Sprintf("Xray-%s-%s.zip", osName, arch)

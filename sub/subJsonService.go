@@ -21,13 +21,14 @@ type SubJsonService struct {
 	configJson       map[string]interface{}
 	defaultOutbounds []json_util.RawMessage
 	fragment         string
+	noises           string
 	mux              string
 
 	inboundService service.InboundService
 	SubService     *SubService
 }
 
-func NewSubJsonService(fragment string, mux string, rules string, subService *SubService) *SubJsonService {
+func NewSubJsonService(fragment string, noises string, mux string, rules string, subService *SubService) *SubJsonService {
 	var configJson map[string]interface{}
 	var defaultOutbounds []json_util.RawMessage
 	json.Unmarshal([]byte(defaultJson), &configJson)
@@ -52,10 +53,15 @@ func NewSubJsonService(fragment string, mux string, rules string, subService *Su
 		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(fragment))
 	}
 
+	if noises != "" {
+		defaultOutbounds = append(defaultOutbounds, json_util.RawMessage(noises))
+	}
+
 	return &SubJsonService{
 		configJson:       configJson,
 		defaultOutbounds: defaultOutbounds,
 		fragment:         fragment,
+		noises:           noises,
 		mux:              mux,
 		SubService:       subService,
 	}
@@ -211,7 +217,7 @@ func (s *SubJsonService) streamData(stream string) map[string]interface{} {
 	delete(streamSettings, "sockopt")
 
 	if s.fragment != "" {
-		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "tcpNoDelay": true}`)
+		streamSettings["sockopt"] = json_util.RawMessage(`{"dialerProxy": "fragment", "tcpKeepAliveIdle": 100, "tcpMptcp": true, "penetrate": true}`)
 	}
 
 	// remove proxy protocol
@@ -224,7 +230,6 @@ func (s *SubJsonService) streamData(stream string) map[string]interface{} {
 	case "httpupgrade":
 		streamSettings["httpupgradeSettings"] = s.removeAcceptProxy(streamSettings["httpupgradeSettings"])
 	}
-
 	return streamSettings
 }
 
@@ -283,6 +288,9 @@ func (s *SubJsonService) genVnext(inbound *model.Inbound, streamSettings json_ut
 
 	usersData[0].ID = client.ID
 	usersData[0].Level = 8
+	if inbound.Protocol == model.VMESS {
+		usersData[0].Security = client.Security
+	}
 	if inbound.Protocol == model.VLESS {
 		usersData[0].Flow = client.Flow
 		usersData[0].Encryption = "none"
@@ -372,6 +380,7 @@ type UserVnext struct {
 	Encryption string `json:"encryption,omitempty"`
 	Flow       string `json:"flow,omitempty"`
 	ID         string `json:"id"`
+	Security   string `json:"security,omitempty"`
 	Level      int    `json:"level"`
 }
 

@@ -32,8 +32,8 @@ var defaultValueMap = map[string]string{
 	"webKeyFile":         "",
 	"secret":             random.Seq(32),
 	"webBasePath":        "/",
-	"sessionMaxAge":      "0",
-	"pageSize":           "0",
+	"sessionMaxAge":      "60",
+	"pageSize":           "50",
 	"expireDiff":         "0",
 	"trafficDiff":        "0",
 	"remarkModel":        "-ieo",
@@ -41,11 +41,12 @@ var defaultValueMap = map[string]string{
 	"tgBotEnable":        "false",
 	"tgBotToken":         "",
 	"tgBotProxy":         "",
+	"tgBotAPIServer":     "",
 	"tgBotChatId":        "",
 	"tgRunTime":          "@daily",
 	"tgBotBackup":        "false",
 	"tgBotLoginNotify":   "true",
-	"tgCpu":              "0",
+	"tgCpu":              "80",
 	"tgLang":             "en-US",
 	"secretEnable":       "false",
 	"subEnable":          "false",
@@ -62,6 +63,7 @@ var defaultValueMap = map[string]string{
 	"subJsonPath":        "/json/",
 	"subJsonURI":         "",
 	"subJsonFragment":    "",
+	"subJsonNoises":      "",
 	"subJsonMux":         "",
 	"subJsonRules":       "",
 	"datepicker":         "gregorian",
@@ -241,6 +243,10 @@ func (s *SettingService) GetListen() (string, error) {
 	return s.getString("webListen")
 }
 
+func (s *SettingService) SetListen(ip string) error {
+	return s.setString("webListen", ip)
+}
+
 func (s *SettingService) GetWebDomain() (string, error) {
 	return s.getString("webDomain")
 }
@@ -261,6 +267,14 @@ func (s *SettingService) SetTgBotProxy(token string) error {
 	return s.setString("tgBotProxy", token)
 }
 
+func (s *SettingService) GetTgBotAPIServer() (string, error) {
+	return s.getString("tgBotAPIServer")
+}
+
+func (s *SettingService) SetTgBotAPIServer(token string) error {
+	return s.setString("tgBotAPIServer", token)
+}
+
 func (s *SettingService) GetTgBotChatId() (string, error) {
 	return s.getString("tgBotChatId")
 }
@@ -269,11 +283,11 @@ func (s *SettingService) SetTgBotChatId(chatIds string) error {
 	return s.setString("tgBotChatId", chatIds)
 }
 
-func (s *SettingService) GetTgbotenabled() (bool, error) {
+func (s *SettingService) GetTgbotEnabled() (bool, error) {
 	return s.getBool("tgBotEnable")
 }
 
-func (s *SettingService) SetTgbotenabled(value bool) error {
+func (s *SettingService) SetTgbotEnabled(value bool) error {
 	return s.setBool("tgBotEnable", value)
 }
 
@@ -309,8 +323,16 @@ func (s *SettingService) SetPort(port int) error {
 	return s.setInt("webPort", port)
 }
 
+func (s *SettingService) SetCertFile(webCertFile string) error {
+	return s.setString("webCertFile", webCertFile)
+}
+
 func (s *SettingService) GetCertFile() (string, error) {
 	return s.getString("webCertFile")
+}
+
+func (s *SettingService) SetKeyFile(webKeyFile string) error {
+	return s.setString("webKeyFile", webKeyFile)
 }
 
 func (s *SettingService) GetKeyFile() (string, error) {
@@ -350,6 +372,16 @@ func (s *SettingService) GetSecret() ([]byte, error) {
 		}
 	}
 	return []byte(secret), err
+}
+
+func (s *SettingService) SetBasePath(basePath string) error {
+	if !strings.HasPrefix(basePath, "/") {
+		basePath = "/" + basePath
+	}
+	if !strings.HasSuffix(basePath, "/") {
+		basePath += "/"
+	}
+	return s.setString("webBasePath", basePath)
 }
 
 func (s *SettingService) GetBasePath() (string, error) {
@@ -440,6 +472,10 @@ func (s *SettingService) GetSubJsonFragment() (string, error) {
 	return s.getString("subJsonFragment")
 }
 
+func (s *SettingService) GetSubJsonNoises() (string, error) {
+	return s.getString("subJsonNoises")
+}
+
 func (s *SettingService) GetSubJsonMux() (string, error) {
 	return s.getString("subJsonMux")
 }
@@ -506,7 +542,7 @@ func (s *SettingService) GetDefaultSettings(host string) (interface{}, error) {
 		"pageSize":      func() (interface{}, error) { return s.GetPageSize() },
 		"defaultCert":   func() (interface{}, error) { return s.GetCertFile() },
 		"defaultKey":    func() (interface{}, error) { return s.GetKeyFile() },
-		"tgBotEnable":   func() (interface{}, error) { return s.GetTgbotenabled() },
+		"tgBotEnable":   func() (interface{}, error) { return s.GetTgbotEnabled() },
 		"subEnable":     func() (interface{}, error) { return s.GetSubEnable() },
 		"subURI":        func() (interface{}, error) { return s.GetSubURI() },
 		"subJsonURI":    func() (interface{}, error) { return s.GetSubJsonURI() },

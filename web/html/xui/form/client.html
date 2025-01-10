@@ -39,6 +39,11 @@
         </template>
         <a-input v-model.trim="client.id"></a-input>
     </a-form-item>
+    <a-form-item v-if="inbound.protocol === Protocols.VMESS" label='{{ i18n "security" }}'>
+        <a-select v-model="client.security" :dropdown-class-name="themeSwitcher.currentTheme">
+            <a-select-option v-for="key in USERS_SECURITY" :value="key">[[ key ]]</a-select-option>
+        </a-select>
+    </a-form-item>
     <a-form-item v-if="client.email && app.subSettings.enable">
         <template slot="label">
             <a-tooltip>
@@ -57,11 +62,14 @@
                 <template slot="title">
                     <span>{{ i18n "pages.inbounds.telegramDesc" }}</span>
                 </template>
-                Telegram ID
+                Telegram ChatID
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-input-number style="width: 50%" v-model="client.tgId" min="0"></a-input-number>
+        <a-input-number style="width: 50%" v-model.number="client.tgId" min="0"></a-input-number>
+    </a-form-item>
+    <a-form-item v-if="client.email" label='{{ i18n "comment" }}'>
+        <a-input v-model.trim="client.comment"></a-input>
     </a-form-item>
     <a-form-item v-if="app.ipLimitEnable">
         <template slot="label">
@@ -73,9 +81,9 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-input-number v-model="client.limitIp" min="0"></a-input-number>
+        <a-input-number v-model.number="client.limitIp" min="0"></a-input-number>
     </a-form-item>
-    <a-form-item v-if="client.limitIp > 0 && client.email && isEdit">
+    <a-form-item v-if="app.ipLimitEnable && client.limitIp > 0 && client.email && isEdit">
         <template slot="label">
             <a-tooltip>
                 <template slot="title">
@@ -99,12 +107,6 @@
             </a-textarea>
         </a-form>
     </a-form-item>
-    <a-form-item v-if="inbound.xtls" label='Flow'>
-        <a-select v-model="client.flow" :dropdown-class-name="themeSwitcher.currentTheme">
-            <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
-            <a-select-option v-for="key in XTLS_FLOW_CONTROL" :value="key">[[ key ]]</a-select-option>
-        </a-select>
-    </a-form-item>
     <a-form-item v-if="inbound.canEnableTlsFlow()" label='Flow'>
         <a-select v-model="client.flow" :dropdown-class-name="themeSwitcher.currentTheme">
             <a-select-option value="" selected>{{ i18n "none" }}</a-select-option>
@@ -121,7 +123,7 @@
                 <a-icon type="question-circle"></a-icon>
             </a-tooltip>
         </template>
-        <a-input-number v-model="client._totalGB" :min="0"></a-input-number>
+        <a-input-number v-model.number="client._totalGB" :min="0"></a-input-number>
     </a-form-item>
     <a-form-item v-if="isEdit && clientStats" label='{{ i18n "usage" }}'>
         <a-tag :color="clientUsageColor(clientStats, app.trafficDiff)">

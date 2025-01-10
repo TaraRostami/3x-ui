@@ -5,40 +5,48 @@ import (
 
 	"x-ui/database/model"
 
-	sessions "github.com/Calidity/gin-sessions"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 )
 
 const (
-	loginUser = "LOGIN_USER"
+	loginUserKey = "LOGIN_USER"
+	defaultPath  = "/"
 )
 
 func init() {
 	gob.Register(model.User{})
 }
 
-func SetLoginUser(c *gin.Context, user *model.User) error {
+func SetLoginUser(c *gin.Context, user *model.User) {
+	if user == nil {
+		return
+	}
 	s := sessions.Default(c)
-	s.Set(loginUser, user)
-	return s.Save()
+	s.Set(loginUserKey, *user)
 }
 
-func SetMaxAge(c *gin.Context, maxAge int) error {
+func SetMaxAge(c *gin.Context, maxAge int) {
 	s := sessions.Default(c)
 	s.Options(sessions.Options{
-		Path:   "/",
-		MaxAge: maxAge,
+		Path:     defaultPath,
+		MaxAge:   maxAge,
+		HttpOnly: true,
 	})
-	return s.Save()
 }
 
 func GetLoginUser(c *gin.Context) *model.User {
 	s := sessions.Default(c)
-	obj := s.Get(loginUser)
+	obj := s.Get(loginUserKey)
 	if obj == nil {
 		return nil
 	}
-	user := obj.(model.User)
+	user, ok := obj.(model.User)
+	if !ok {
+
+		s.Delete(loginUserKey)
+		return nil
+	}
 	return &user
 }
 
@@ -50,8 +58,8 @@ func ClearSession(c *gin.Context) {
 	s := sessions.Default(c)
 	s.Clear()
 	s.Options(sessions.Options{
-		Path:   "/",
-		MaxAge: -1,
+		Path:     defaultPath,
+		MaxAge:   -1,
+		HttpOnly: true,
 	})
-	s.Save()
 }

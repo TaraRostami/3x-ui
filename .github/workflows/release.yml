@@ -1,10 +1,10 @@
 name: Release 3X-UI
 
 on:
+  workflow_dispatch:
   push:
     tags:
-      - "*"
-  workflow_dispatch:
+      - "v*.*.*"
 
 jobs:
   build:
@@ -26,7 +26,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version-file: go.mod
 
       - name: Install dependencies
         run: |
@@ -83,7 +83,7 @@ jobs:
           cd x-ui/bin
           
           # Download dependencies
-          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v1.8.10/"
+          Xray_URL="https://github.com/XTLS/Xray-core/releases/download/v25.1.1/"
           if [ "${{ matrix.platform }}" == "amd64" ]; then
             wget ${Xray_URL}Xray-linux-64.zip
             unzip Xray-linux-64.zip
@@ -118,14 +118,20 @@ jobs:
           wget https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat
           wget -O geoip_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geoip.dat
           wget -O geosite_IR.dat https://github.com/chocolate4u/Iran-v2ray-rules/releases/latest/download/geosite.dat
-          wget -O geoip_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geoip.dat
-          wget -O geosite_VN.dat https://github.com/vuong2023/vn-v2ray-rules/releases/latest/download/geosite.dat
+          wget -O geoip_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geoip.dat
+          wget -O geosite_RU.dat https://github.com/runetfreedom/russia-v2ray-rules-dat/releases/latest/download/geosite.dat
           mv xray xray-linux-${{ matrix.platform }}
           cd ../..
           
       - name: Package
         run: tar -zcvf x-ui-linux-${{ matrix.platform }}.tar.gz x-ui
-        
+
+      - name: Upload files to Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: x-ui-linux-${{ matrix.platform }}
+          path: ./x-ui-linux-${{ matrix.platform }}.tar.gz
+
       - name: Upload files to GH release
         uses: svenstaro/upload-release-action@v2
         with:

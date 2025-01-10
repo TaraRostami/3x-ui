@@ -168,7 +168,7 @@ func (s *SubService) getLink(inbound *model.Inbound, email string) string {
 }
 
 func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
-	if inbound.Protocol != model.VMess {
+	if inbound.Protocol != model.VMESS {
 		return ""
 	}
 	obj := map[string]interface{}{
@@ -202,24 +202,12 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	case "ws":
 		ws, _ := stream["wsSettings"].(map[string]interface{})
 		obj["path"] = ws["path"].(string)
-		obj["host"] = ws["host"].(string)
-		if headers, ok := ws["headers"].(map[string]interface{}); ok {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				obj["host"] = hostFromHeaders
-			}
+		if host, ok := ws["host"].(string); ok && len(host) > 0 {
+			obj["host"] = host
+		} else {
+			headers, _ := ws["headers"].(map[string]interface{})
+			obj["host"] = searchHost(headers)
 		}
-	case "http":
-		obj["net"] = "h2"
-		http, _ := stream["httpSettings"].(map[string]interface{})
-		obj["path"], _ = http["path"].(string)
-		obj["host"] = searchHost(http)
-	case "quic":
-		quic, _ := stream["quicSettings"].(map[string]interface{})
-		header := quic["header"].(map[string]interface{})
-		obj["type"], _ = header["type"].(string)
-		obj["host"], _ = quic["security"].(string)
-		obj["path"], _ = quic["key"].(string)
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		obj["path"] = grpc["serviceName"].(string)
@@ -230,13 +218,22 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 	case "httpupgrade":
 		httpupgrade, _ := stream["httpupgradeSettings"].(map[string]interface{})
 		obj["path"] = httpupgrade["path"].(string)
-		obj["host"] = httpupgrade["host"].(string)
-		if headers, ok := httpupgrade["headers"].(map[string]interface{}); ok {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				obj["host"] = hostFromHeaders
-			}
+		if host, ok := httpupgrade["host"].(string); ok && len(host) > 0 {
+			obj["host"] = host
+		} else {
+			headers, _ := httpupgrade["headers"].(map[string]interface{})
+			obj["host"] = searchHost(headers)
 		}
+	case "xhttp":
+		xhttp, _ := stream["xhttpSettings"].(map[string]interface{})
+		obj["path"] = xhttp["path"].(string)
+		if host, ok := xhttp["host"].(string); ok && len(host) > 0 {
+			obj["host"] = host
+		} else {
+			headers, _ := xhttp["headers"].(map[string]interface{})
+			obj["host"] = searchHost(headers)
+		}
+		obj["mode"] = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	obj["tls"] = security
@@ -274,6 +271,7 @@ func (s *SubService) genVmessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 	obj["id"] = clients[clientIndex].ID
+	obj["scy"] = clients[clientIndex].Security
 
 	externalProxies, _ := stream["externalProxy"].([]interface{})
 
@@ -352,24 +350,12 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	case "ws":
 		ws, _ := stream["wsSettings"].(map[string]interface{})
 		params["path"] = ws["path"].(string)
-		params["host"] = ws["host"].(string)
-		headers, _ := ws["headers"].(map[string]interface{})
-		if headers != nil {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				params["host"] = hostFromHeaders
-			}
+		if host, ok := ws["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := ws["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
 		}
-	case "http":
-		http, _ := stream["httpSettings"].(map[string]interface{})
-		params["path"] = http["path"].(string)
-		params["host"] = searchHost(http)
-	case "quic":
-		quic, _ := stream["quicSettings"].(map[string]interface{})
-		params["quicSecurity"] = quic["security"].(string)
-		params["key"] = quic["key"].(string)
-		header := quic["header"].(map[string]interface{})
-		params["headerType"] = header["type"].(string)
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
@@ -380,14 +366,22 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 	case "httpupgrade":
 		httpupgrade, _ := stream["httpupgradeSettings"].(map[string]interface{})
 		params["path"] = httpupgrade["path"].(string)
-		params["host"] = httpupgrade["host"].(string)
-		headers, _ := httpupgrade["headers"].(map[string]interface{})
-		if headers != nil {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				params["host"] = hostFromHeaders
-			}
+		if host, ok := httpupgrade["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := httpupgrade["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
 		}
+	case "xhttp":
+		xhttp, _ := stream["xhttpSettings"].(map[string]interface{})
+		params["path"] = xhttp["path"].(string)
+		if host, ok := xhttp["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := xhttp["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
+		}
+		params["mode"] = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -451,38 +445,7 @@ func (s *SubService) genVlessLink(inbound *model.Inbound, email string) string {
 		}
 	}
 
-	if security == "xtls" {
-		params["security"] = "xtls"
-		xtlsSetting, _ := stream["xtlsSettings"].(map[string]interface{})
-		alpns, _ := xtlsSetting["alpn"].([]interface{})
-		var alpn []string
-		for _, a := range alpns {
-			alpn = append(alpn, a.(string))
-		}
-		if len(alpn) > 0 {
-			params["alpn"] = strings.Join(alpn, ",")
-		}
-		if sniValue, ok := searchKey(xtlsSetting, "serverName"); ok {
-			params["sni"], _ = sniValue.(string)
-		}
-		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
-		if xtlsSetting != nil {
-			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
-				params["fp"], _ = fpValue.(string)
-			}
-			if insecure, ok := searchKey(xtlsSettings, "allowInsecure"); ok {
-				if insecure.(bool) {
-					params["allowInsecure"] = "1"
-				}
-			}
-		}
-
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
-	}
-
-	if security != "tls" && security != "reality" && security != "xtls" {
+	if security != "tls" && security != "reality" {
 		params["security"] = "none"
 	}
 
@@ -581,24 +544,12 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	case "ws":
 		ws, _ := stream["wsSettings"].(map[string]interface{})
 		params["path"] = ws["path"].(string)
-		params["host"] = ws["host"].(string)
-		headers, _ := ws["headers"].(map[string]interface{})
-		if headers != nil {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				params["host"] = hostFromHeaders
-			}
+		if host, ok := ws["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := ws["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
 		}
-	case "http":
-		http, _ := stream["httpSettings"].(map[string]interface{})
-		params["path"] = http["path"].(string)
-		params["host"] = searchHost(http)
-	case "quic":
-		quic, _ := stream["quicSettings"].(map[string]interface{})
-		params["quicSecurity"] = quic["security"].(string)
-		params["key"] = quic["key"].(string)
-		header := quic["header"].(map[string]interface{})
-		params["headerType"] = header["type"].(string)
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
@@ -609,14 +560,22 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 	case "httpupgrade":
 		httpupgrade, _ := stream["httpupgradeSettings"].(map[string]interface{})
 		params["path"] = httpupgrade["path"].(string)
-		params["host"] = httpupgrade["host"].(string)
-		headers, _ := httpupgrade["headers"].(map[string]interface{})
-		if headers != nil {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				params["host"] = hostFromHeaders
-			}
+		if host, ok := httpupgrade["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := httpupgrade["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
 		}
+	case "xhttp":
+		xhttp, _ := stream["xhttpSettings"].(map[string]interface{})
+		params["path"] = xhttp["path"].(string)
+		if host, ok := xhttp["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := xhttp["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
+		}
+		params["mode"] = xhttp["mode"].(string)
 	}
 	security, _ := stream["security"].(string)
 	if security == "tls" {
@@ -676,39 +635,7 @@ func (s *SubService) genTrojanLink(inbound *model.Inbound, email string) string 
 		}
 	}
 
-	if security == "xtls" {
-		params["security"] = "xtls"
-		xtlsSetting, _ := stream["xtlsSettings"].(map[string]interface{})
-		alpns, _ := xtlsSetting["alpn"].([]interface{})
-		var alpn []string
-		for _, a := range alpns {
-			alpn = append(alpn, a.(string))
-		}
-		if len(alpn) > 0 {
-			params["alpn"] = strings.Join(alpn, ",")
-		}
-		if sniValue, ok := searchKey(xtlsSetting, "serverName"); ok {
-			params["sni"], _ = sniValue.(string)
-		}
-
-		xtlsSettings, _ := searchKey(xtlsSetting, "settings")
-		if xtlsSetting != nil {
-			if fpValue, ok := searchKey(xtlsSettings, "fingerprint"); ok {
-				params["fp"], _ = fpValue.(string)
-			}
-			if insecure, ok := searchKey(xtlsSettings, "allowInsecure"); ok {
-				if insecure.(bool) {
-					params["allowInsecure"] = "1"
-				}
-			}
-		}
-
-		if streamNetwork == "tcp" && len(clients[clientIndex].Flow) > 0 {
-			params["flow"] = clients[clientIndex].Flow
-		}
-	}
-
-	if security != "tls" && security != "reality" && security != "xtls" {
+	if security != "tls" && security != "reality" {
 		params["security"] = "none"
 	}
 
@@ -811,24 +738,12 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	case "ws":
 		ws, _ := stream["wsSettings"].(map[string]interface{})
 		params["path"] = ws["path"].(string)
-		params["host"] = ws["host"].(string)
-		headers, _ := ws["headers"].(map[string]interface{})
-		if headers != nil {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				params["host"] = hostFromHeaders
-			}
+		if host, ok := ws["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := ws["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
 		}
-	case "http":
-		http, _ := stream["httpSettings"].(map[string]interface{})
-		params["path"] = http["path"].(string)
-		params["host"] = searchHost(http)
-	case "quic":
-		quic, _ := stream["quicSettings"].(map[string]interface{})
-		params["quicSecurity"] = quic["security"].(string)
-		params["key"] = quic["key"].(string)
-		header := quic["header"].(map[string]interface{})
-		params["headerType"] = header["type"].(string)
 	case "grpc":
 		grpc, _ := stream["grpcSettings"].(map[string]interface{})
 		params["serviceName"] = grpc["serviceName"].(string)
@@ -839,14 +754,22 @@ func (s *SubService) genShadowsocksLink(inbound *model.Inbound, email string) st
 	case "httpupgrade":
 		httpupgrade, _ := stream["httpupgradeSettings"].(map[string]interface{})
 		params["path"] = httpupgrade["path"].(string)
-		params["host"] = httpupgrade["host"].(string)
-		headers, _ := httpupgrade["headers"].(map[string]interface{})
-		if headers != nil {
-			hostFromHeaders := searchHost(headers)
-			if hostFromHeaders != "" {
-				params["host"] = hostFromHeaders
-			}
+		if host, ok := httpupgrade["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := httpupgrade["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
 		}
+	case "xhttp":
+		xhttp, _ := stream["xhttpSettings"].(map[string]interface{})
+		params["path"] = xhttp["path"].(string)
+		if host, ok := xhttp["host"].(string); ok && len(host) > 0 {
+			params["host"] = host
+		} else {
+			headers, _ := xhttp["headers"].(map[string]interface{})
+			params["host"] = searchHost(headers)
+		}
+		params["mode"] = xhttp["mode"].(string)
 	}
 
 	security, _ := stream["security"].(string)
@@ -985,9 +908,36 @@ func (s *SubService) genRemark(inbound *model.Inbound, email string, extra strin
 			now := time.Now().Unix()
 			switch exp := stats.ExpiryTime / 1000; {
 			case exp > 0:
-				remark = append(remark, fmt.Sprintf("%d%s⏳", (exp-now)/86400, "Days"))
+				remainingSeconds := exp - now
+				days := remainingSeconds / 86400
+				hours := (remainingSeconds % 86400) / 3600
+				minutes := (remainingSeconds % 3600) / 60
+				if days > 0 {
+					if hours > 0 {
+						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
+					} else {
+						remark = append(remark, fmt.Sprintf("%dD⏳", days))
+					}
+				} else if hours > 0 {
+					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
+				} else {
+					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
+				}
 			case exp < 0:
-				remark = append(remark, fmt.Sprintf("%d%s⏳", exp/-86400, "Days"))
+				days := exp / -86400
+				hours := (exp % -86400) / 3600
+				minutes := (exp % -3600) / 60
+				if days > 0 {
+					if hours > 0 {
+						remark = append(remark, fmt.Sprintf("%dD,%dH⏳", days, hours))
+					} else {
+						remark = append(remark, fmt.Sprintf("%dD⏳", days))
+					}
+				} else if hours > 0 {
+					remark = append(remark, fmt.Sprintf("%dH⏳", hours))
+				} else {
+					remark = append(remark, fmt.Sprintf("%dM⏳", minutes))
+				}
 			}
 		}
 	}
