@@ -190,9 +190,6 @@
 
 [pages.client]
 "add" = "添加客户端"
-"groupAdd" = "添加订阅用户"
-"isGroupEdit" = "群组编辑"
-"isGroupEditDesc" = "所有具有相同订阅的客户端均被编辑"
 "edit" = "编辑客户端"
 "submitAdd" = "添加客户端"
 "submitEdit" = "保存修改"
@@ -290,8 +287,6 @@
 "subSettings" = "订阅设置"
 "subEnable" = "启用订阅服务"
 "subEnableDesc" = "启用订阅服务功能"
-"subSyncEnable" = "启用订阅同步"
-"subSyncEnableDesc" = "具有相同订阅的客户端的流量将每 10 秒同步一次。"
 "subListen" = "监听 IP"
 "subListenDesc" = "订阅服务监听的 IP 地址（留空表示监听所有 IP）"
 "subPort" = "监听端口"
@@ -373,6 +368,8 @@
 "errorLogDesc" = "错误日志的文件路径。特殊值 'none' 禁用错误日志"
 "dnsLog" = "DNS 日志"
 "dnsLogDesc" = "是否启用 DNS 查询日志"
+"outboundTraffic" = "出站流量"
+"outboundTrafficDesc" = "是否启用出站流量"
 "maskAddress" = "隐藏地址"
 "maskAddressDesc" = "IP 地址掩码，启用时会自动替换日志中出现的 IP 地址。"
 

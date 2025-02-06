@@ -190,9 +190,6 @@
 
 [pages.client]
 "add" = "Thêm người dùng"
-"groupAdd" = "Thêm người dùng đăng ký"
-"isGroupEdit" = "Chỉnh sửa nhóm"
-"isGroupEditDesc" = "Tất cả người dùng có cùng đăng ký đều có thể được chỉnh sửa"
 "edit" = "Chỉnh sửa người dùng"
 "submitAdd" = "Thêm"
 "submitEdit" = "Lưu thay đổi"
@@ -290,8 +287,6 @@
 "subSettings" = "Gói đăng ký"
 "subEnable" = "Bật dịch vụ"
 "subEnableDesc" = "Tính năng gói đăng ký với cấu hình riêng"
-"subSyncEnable" = "Bật đồng bộ đăng ký"
-"subSyncEnableDesc" = "Lưu lượng truy cập từ các máy khách có cùng đăng ký sẽ được đồng bộ sau mỗi 10 giây."
 "subListen" = "Listening IP"
 "subListenDesc" = "Mặc định để trống để nghe tất cả các IP"
 "subPort" = "Cổng gói đăng ký"
@@ -373,6 +368,8 @@
 "errorLogDesc" = "Đường dẫn tệp cho nhật ký lỗi. Nhật ký lỗi bị vô hiệu hóa có giá trị đặc biệt 'không'"
 "dnsLog" = "Nhật ký DNS"
 "dnsLogDesc" = "Có bật nhật ký truy vấn DNS không"
+"outboundTraffic" = "Lưu lượng đi ra"
+"outboundTrafficDesc" = "Có nên bật lưu lượng ra không"
 "maskAddress" = "Ẩn Địa Chỉ"
 "maskAddressDesc" = "Mặt nạ địa chỉ IP, khi được bật, sẽ tự động thay thế địa chỉ IP xuất hiện trong nhật ký."
 
